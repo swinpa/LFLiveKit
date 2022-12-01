@@ -100,6 +100,18 @@
     _streamInfo = streamInfo;
     _streamInfo.videoConfiguration = _videoConfiguration;
     _streamInfo.audioConfiguration = _audioConfiguration;
+    /*
+     1. 开启RTMP服务器链接，链接成功后会通过代理回调
+        - (void)socketStatus:(nullable id<LFStreamSocket>)socket status:(LFLiveState)status{}
+     2. 在回调中开始开启摄像头，麦克风进行视频，音频采集
+     3. 视频采集过程中会使用滤镜进行渲染
+     4. 滤镜渲染完后通过代理回调
+        - (void)captureOutput:(nullable LFVideoCapture *)capture pixelBuffer:(nullable CVPixelBufferRef)pixelBuffer{}
+     5. 在滤镜渲染回调中调用编码器进行视频编码
+     6. 编码完成后通过代理回调
+        - (void)videoEncoder:(nullable id<LFVideoEncoding>)encoder videoFrame:(nullable LFVideoFrame *)frame{}
+     7. 在编码回调中调用RTMPSocket进行推流
+     */
     [self.socket start];
 }
 
@@ -416,10 +428,13 @@
 
 - (BOOL)AVAlignment{
     if((self.captureType & LFLiveCaptureMaskAudio || self.captureType & LFLiveInputMaskAudio) &&
-       (self.captureType & LFLiveCaptureMaskVideo || self.captureType & LFLiveInputMaskVideo)
-       ){
-        if(self.hasCaptureAudio && self.hasKeyFrameVideo) return YES;
-        else  return NO;
+       (self.captureType & LFLiveCaptureMaskVideo || self.captureType & LFLiveInputMaskVideo))
+    {
+        if(self.hasCaptureAudio && self.hasKeyFrameVideo) {
+            return YES;
+        }else {
+            return NO;
+        }
     }else{
         return YES;
     }
