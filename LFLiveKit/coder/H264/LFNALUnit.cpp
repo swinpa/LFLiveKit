@@ -20,8 +20,12 @@ LFNALUnit::LFNALUnit()
     m_cBytes(0){
 }
 
-bool
-LFNALUnit::GetStartCode(const BYTE *& pBegin, const BYTE *& pStart, int& cRemain){
+
+/// 找到开始码的位置 也就是0x00 00 01的位置
+/// @param pBegin <#pBegin description#>
+/// @param pStart <#pStart description#>
+/// @param cRemain <#cRemain description#>
+bool LFNALUnit::GetStartCode(const BYTE *& pBegin, const BYTE *& pStart, int& cRemain){
     // start code is any number of 00 followed by 00 00 01
     // We need to record the first 00 in pBegin and the first byte
     // following the startcode in pStart.
@@ -206,6 +210,7 @@ LFNALUnit::GetSE(){
 }
 
 // --- sequence params parsing ---------------
+// sps
 LFSeqParamSet::LFSeqParamSet()
     : m_cx(0),
     m_cy(0),

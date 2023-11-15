@@ -765,12 +765,14 @@ int PILI_RTMP_Connect0(PILI_RTMP *r, struct addrinfo *ai, unsigned short port, R
     r->m_pausing = 0;
     r->m_fDuration = 0.0;
 
+    //创建socket
     r->m_sb.sb_socket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (ai->ai_family == AF_INET6) {
         struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)ai->ai_addr;
         in6->sin6_port = htons(port);
     }
     if (r->m_sb.sb_socket != -1) {
+        //链接成功返回 0
         if (connect(r->m_sb.sb_socket, ai->ai_addr, ai->ai_addrlen) < 0) {
             int err = GetSockError();
 
@@ -826,6 +828,7 @@ int PILI_RTMP_Connect0(PILI_RTMP *r, struct addrinfo *ai, unsigned short port, R
         return FALSE;
     }
 
+    //socket 链接成功后，设置一下额外的参数，比如发送，接收超时设置
     /* set receive timeout */
     {
         SET_RCVTIMEO(tv, r->Link.timeout);
@@ -906,6 +909,7 @@ int PILI_RTMP_Connect1(PILI_RTMP *r, PILI_RTMPPacket *cp, RTMPError *error) {
         r->m_msgCounter = 0;
     }
     RTMP_Log(RTMP_LOGDEBUG, "%s, ... connected, handshaking", __FUNCTION__);
+    // 进行RTMP握手
     if (!HandShake(r, TRUE, error)) {
         if (error) {
             char msg[100];
@@ -965,6 +969,7 @@ int PILI_RTMP_Connect(PILI_RTMP *r, PILI_RTMPPacket *cp, RTMPError *error) {
     cur_ai = ai;
 
     int t1 = PILI_RTMP_GetTime();
+    // 进行TCP链接
     if (!PILI_RTMP_Connect0(r, cur_ai, port, error)) {
         freeaddrinfo(ai);
         return FALSE;
@@ -973,6 +978,7 @@ int PILI_RTMP_Connect(PILI_RTMP *r, PILI_RTMPPacket *cp, RTMPError *error) {
     r->m_bSendCounter = TRUE;
 
     int t2 = PILI_RTMP_GetTime();
+    //进行RTMP握手
     int ret = PILI_RTMP_Connect1(r, cp, error);
     conn_time.handshake_time = PILI_RTMP_GetTime() - t2;
 
@@ -1424,10 +1430,11 @@ static int
     while (n > 0) {
         int nBytes;
 
-        if (r->Link.protocol & RTMP_FEATURE_HTTP)
+        if (r->Link.protocol & RTMP_FEATURE_HTTP) {
             nBytes = HTTP_Post(r, RTMPT_SEND, ptr, n);
-        else
+        } else {
             nBytes = PILI_RTMPSockBuf_Send(&r->m_sb, ptr, n);
+        }
         /*RTMP_Log(RTMP_LOGDEBUG, "%s: %d\n", __FUNCTION__, nBytes); */
 
         if (nBytes < 0) {
@@ -2971,14 +2978,25 @@ static int
     uint32_t uptime, suptime;
     int bMatch;
     char type;
-    char clientbuf[RTMP_SIG_SIZE + 1], *clientsig = clientbuf + 1;
+    char clientbuf[RTMP_SIG_SIZE + 1];
+    //c1内容指针
+    char *clientsig = clientbuf + 1;
+    
     char serversig[RTMP_SIG_SIZE];
 
+    /*
+     c0, 一个字节，共8bit, 存放rtmp的版本号，现基本都是传3
+     */
     clientbuf[0] = 0x03; /* not encrypted */
 
     uptime = htonl(PILI_RTMP_GetTime());
+    /*
+     c1：1536字节 = 4字节time + 4字节0 + (1536-8)字节随机内容
+     */
+    // 4字节time
     memcpy(clientsig, &uptime, 4);
 
+    // 4字节0
     memset(&clientsig[4], 0, 4);
 
 #ifdef _DEBUG
@@ -2986,12 +3004,17 @@ static int
         clientsig[i] = 0xff;
 #else
     for (i = 8; i < RTMP_SIG_SIZE; i++)
+    {
         clientsig[i] = (char)(rand() % 256);
+    }
+        
 #endif
 
+    // 发送c0,c1
     if (!WriteN(r, clientbuf, RTMP_SIG_SIZE + 1, error))
         return FALSE;
 
+    // 接收s0，一个字节长度，8bit
     if (ReadN(r, &type, 1) != 1) /* 0x03 or 0x06 */
         return FALSE;
 
@@ -3001,11 +3024,13 @@ static int
         RTMP_Log(RTMP_LOGWARNING, "%s: Type mismatch: client sent %d, server answered %d",
                  __FUNCTION__, clientbuf[0], type);
 
+    //接收s1
     if (ReadN(r, serversig, RTMP_SIG_SIZE) != RTMP_SIG_SIZE)
         return FALSE;
 
     /* decode server response */
 
+    //s1 前4字节的time
     memcpy(&suptime, serversig, 4);
     suptime = ntohl(suptime);
 
@@ -3014,12 +3039,14 @@ static int
              serversig[4], serversig[5], serversig[6], serversig[7]);
 
     /* 2nd part of handshake */
+    // 接收到s1后发送c2(c2 == s1)
     if (!WriteN(r, serversig, RTMP_SIG_SIZE, error))
         return FALSE;
-
+    // 接收s2
     if (ReadN(r, serversig, RTMP_SIG_SIZE) != RTMP_SIG_SIZE)
         return FALSE;
 
+    //判断s2跟c2是否一致，也就是c1,c2, s1,s2 都是一样的
     bMatch = (memcmp(serversig, clientsig, RTMP_SIG_SIZE) == 0);
     if (!bMatch) {
         RTMP_Log(RTMP_LOGWARNING, "%s, client signature does not match!", __FUNCTION__);

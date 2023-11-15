@@ -8,7 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
-/// 音频码率 (默认96Kbps)
+/**
+ * 音频码率 (也叫比特率，默认96Kbps)
+ * 码率就是音频文件或者音频流中1秒中的数据量，如1.44Mbps，就是1秒钟内的数据量达1.44Mbits。
+ * 音频码率 = 采样率*位深*声道数目，比如CD的就是44100*16*2=1411kbps。
+ * 位深：一个采样点数据用几位表示，一般有8位，16位，也可以是24位
+ */
 typedef NS_ENUM (NSUInteger, LFLiveAudioBitRate) {
     /// 32Kbps 音频码率
     LFLiveAudioBitRate_32Kbps = 32000,
@@ -22,11 +27,25 @@ typedef NS_ENUM (NSUInteger, LFLiveAudioBitRate) {
     LFLiveAudioBitRate_Default = LFLiveAudioBitRate_96Kbps
 };
 
-/// 音频采样率 (默认44.1KHz)
+/**
+ * 参考：https://zhuanlan.zhihu.com/p/576265735
+ * 音频采样率 (默认44.1KHz)
+ * 采样率，就是每秒对声音进行采集的次数
+ * 
+ * 采样率是指将声音（模拟信号）转换成mp3（数字信号）时的采样频率，也就是单位时间内采样多少点数据。（一个采样点数据有8位，16位，也可以是24位)
+ * 音频中叫采样率，是指把音频信号数字化（AD采样）后一个通道1秒钟有多少个样本，对应而来的就是原始的数据。如44.1kHz的采样率，就是指1个
+ * 通道1秒钟有44.1k个数据，这数据可以是16位，也可以是24或者其他，这就是采样精度。
+ *
+ * 简单地说就是通过波形采样的方法记录1秒钟长度的声音，需要多少个数据点。
+ * 采样频率一般共分为22.05KHz、44.1KHz、48KHz三个等级；
+ * 22.05KHz表示1秒钟有22.05K个数据点，该等级只能达到FM广播的声音品质，
+ * 44.1KHz表示1秒钟有44.1K个数据点，该等级是理论上的CD音质界限，
+ * 48KHz表示1秒钟有48K个数据点，该等级已达到DVD音质了。
+ */
 typedef NS_ENUM (NSUInteger, LFLiveAudioSampleRate){
     /// 16KHz 采样率
     LFLiveAudioSampleRate_16000Hz = 16000,
-    /// 44.1KHz 采样率
+    /// 44.1KHz 采样率的声音就是要花费44000个数据点来描述1秒钟的声音波形。
     LFLiveAudioSampleRate_44100Hz = 44100,
     /// 48KHz 采样率
     LFLiveAudioSampleRate_48000Hz = 48000,

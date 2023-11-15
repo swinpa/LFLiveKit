@@ -69,7 +69,11 @@ typedef NS_ENUM (NSUInteger, LFLiveVideoQuality){
 /// 自动旋转(这里只支持 left 变 right  portrait 变 portraitUpsideDown)
 @property (nonatomic, assign) BOOL autorotate;
 
-/// 视频的帧率，即 fps
+/**
+ * 视频的帧率，即 fps（也叫采样率）
+ * 指1秒钟抓多少幅图像
+ * 如电影的24fps，还有各种30fps，60fps，甚至高速摄影中的120fps
+ */
 @property (nonatomic, assign) NSUInteger videoFrameRate;
 
 /// 视频的最大帧率，即 fps

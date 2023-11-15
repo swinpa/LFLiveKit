@@ -78,16 +78,17 @@ SAVC(mp4a);
     return [self initWithStream:stream reconnectInterval:0 reconnectCount:0];
 }
 
-- (nullable instancetype)initWithStream:(nullable LFLiveStreamInfo *)stream reconnectInterval:(NSInteger)reconnectInterval reconnectCount:(NSInteger)reconnectCount{
-    if (!stream) @throw [NSException exceptionWithName:@"LFStreamRtmpSocket init error" reason:@"stream is nil" userInfo:nil];
+- (nullable instancetype)initWithStream:(nullable LFLiveStreamInfo *)stream
+                      reconnectInterval:(NSInteger)reconnectInterval
+                         reconnectCount:(NSInteger)reconnectCount
+{
+    if (!stream) {
+        @throw [NSException exceptionWithName:@"LFStreamRtmpSocket init error" reason:@"stream is nil" userInfo:nil];
+    }
     if (self = [super init]) {
         _stream = stream;
-        if (reconnectInterval > 0) _reconnectInterval = reconnectInterval;
-        else _reconnectInterval = RetryTimesMargin;
-        
-        if (reconnectCount > 0) _reconnectCount = reconnectCount;
-        else _reconnectCount = RetryTimesBreaken;
-        
+        _reconnectInterval = reconnectInterval > 0 ? reconnectInterval : RetryTimesMargin;
+        _reconnectCount = reconnectCount > 0 ? reconnectCount : RetryTimesBreaken;
         [self addObserver:self forKeyPath:@"isSending" options:NSKeyValueObservingOptionNew context:nil];//这里改成observer主要考虑一直到发送出错情况下，可以继续发送
     }
     return self;
@@ -121,6 +122,7 @@ SAVC(mp4a);
         PILI_RTMP_Close(_rtmp, &_error);
         PILI_RTMP_Free(_rtmp);
     }
+    // 链接RTMP服务器
     [self RTMP264_Connect:(char *)[_stream.url cStringUsingEncoding:NSASCIIStringEncoding]];
 }
 
